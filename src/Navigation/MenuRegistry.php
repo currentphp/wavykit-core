@@ -12,6 +12,9 @@ use WavyKit\Pages\PageRegistry;
 /** Named menu declarations shared across requests; contains no resolved user or resource output. */
 final class MenuRegistry
 {
+    /** @var list<string> Menu names in declaration order. */
+    private array $names = [];
+
     /** @var array<string, list<string>> */
     private array $derived = [];
 
@@ -42,6 +45,7 @@ final class MenuRegistry
         $this->assertMutable();
         $this->assertName($name);
         $this->derived[$name] = array_values($roots);
+        $this->names[] = $name;
 
         return $this->derivedMenus[$name] = new DerivedMenu($this->assertMutable(...));
     }
@@ -59,6 +63,7 @@ final class MenuRegistry
         $this->assertMutable();
         $this->assertName($name);
         $this->defined[$name] = array_map(fn (MenuEntry $entry): MenuEntryDefinition => $this->snapshot($entry, []), array_values($entries));
+        $this->names[] = $name;
 
         return new DefinedMenu;
     }
@@ -104,6 +109,22 @@ final class MenuRegistry
 
         $this->exclusions = $exclusions;
         $this->finalized = true;
+    }
+
+    /**
+     * Read every menu name in declaration order.
+     *
+     * @internal Read by the inspection commands.
+     *
+     * @return list<string>
+     *
+     * @throws InvalidDefinition If finalization fails.
+     */
+    public function names(): array
+    {
+        $this->finalize();
+
+        return $this->names;
     }
 
     /**

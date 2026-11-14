@@ -9,6 +9,10 @@
   `context()`, and `user()`. The `WavyKit\Current` class behind it can be
   injected instead; it holds no request state, so it is safe in queue workers
   and Octane.
+- `wavykit:pages`, `wavykit:menus`, and `wavykit:check` Artisan commands that
+  list and validate registered pages and menus without running callbacks, with
+  `--json` output for the listings. `wavykit:check` exits 1 on any problem, for
+  CI. The core now requires `illuminate/console`.
 
 ### Breaking
 

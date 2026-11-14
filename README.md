@@ -366,6 +366,33 @@ cached routes. It compares page lookup, breadcrumbs, derived and explicit
 menus, bound-resource labels and URLs, and user visibility across consecutive
 requests. It also checks that building the cache does not evaluate page labels.
 
+## Inspecting definitions
+
+Three Artisan commands describe and check what is registered, without a
+request:
+
+```sh
+php artisan wavykit:pages          # the page tree: ID, label, route, icon
+php artisan wavykit:menus          # every menu as a tree; or: wavykit:menus primary
+php artisan wavykit:check          # validate everything; exits 1 on any problem
+```
+
+Labels that come from callbacks are listed as `(dynamic)`; the commands never
+run label, parameter, or visibility callbacks. `wavykit:menus` shows whether a
+menu is derived (with its roots and `except()` exclusions) or defined, which
+entries are groups, and which have a `visibleWhen()` rule.
+
+`wavykit:check` reports duplicate or cyclic pages, unknown parents, unknown
+routes, and invalid menu references, and suits CI. It lists every unknown route
+at once; other definition errors stop at the first one, so fix it and run the
+check again. The listing commands run the same checks first and fail the same
+way.
+
+Add `--json` to `wavykit:pages` or `wavykit:menus` for machine-readable output.
+Pages are nested under `children`, with `label` null and `dynamicLabel` true
+for callback labels; menus have `name`, `kind` (`derived` or `defined`),
+`roots`, `except`, and nested `entries`.
+
 ## Development
 
 The core is developed from the WavyKit monorepo root, which installs the

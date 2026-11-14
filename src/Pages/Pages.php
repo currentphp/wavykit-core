@@ -139,12 +139,32 @@ final readonly class Pages
         }
     }
 
-    private function validateRoutes(): void
+    /**
+     * Describe every page whose route is not registered, in registration order.
+     *
+     * @internal Read by wavykit:check, which reports every problem at once.
+     *
+     * @return list<string>
+     *
+     * @throws InvalidDefinition If registry finalization fails.
+     */
+    public function unknownRoutes(): array
     {
+        $problems = [];
         foreach ($this->registry->all() as $page) {
             if ($page->routeName !== null && $this->router->getRoutes()->getByName($page->routeName) === null) {
-                throw new InvalidDefinition("Page '{$page->id}' references unknown route '{$page->routeName}'.");
+                $problems[] = "Page '{$page->id}' references unknown route '{$page->routeName}'.";
             }
+        }
+
+        return $problems;
+    }
+
+    private function validateRoutes(): void
+    {
+        $problems = $this->unknownRoutes();
+        if ($problems !== []) {
+            throw new InvalidDefinition($problems[0]);
         }
     }
 
