@@ -103,6 +103,16 @@ test('wavykit:menus --json describes one menu', function () {
         ->and($account['entries'][0]['children'][0])->toMatchArray(['kind' => 'page', 'id' => 'settings', 'label' => 'Settings', 'visibility' => true]);
 });
 
+test('listings indent children under their parents', function () {
+    registerInspectionFixture();
+
+    Artisan::call('wavykit:menus', ['name' => 'account', '--no-ansi' => true]);
+    expect(Artisan::output())->toContain("\n    you  You · group\n      settings  Settings · visible when\n");
+
+    Artisan::call('wavykit:pages', ['--no-ansi' => true]);
+    expect(Artisan::output())->toContain("\n  projects  Projects · route projects.index · icon folder\n    projects.show  (dynamic) · route projects.show\n");
+});
+
 test('wavykit:menus rejects unknown menu names', function () {
     registerInspectionFixture();
 

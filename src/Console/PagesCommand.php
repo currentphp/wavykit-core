@@ -62,7 +62,8 @@ final class PagesCommand extends Command
                 $page['route'] === null ? 'no route' : 'route '.$page['route'],
                 $page['icon'] === null ? null : 'icon '.$page['icon'],
             ]);
-            $this->components->twoColumnDetail(str_repeat('  ', $depth).$page['id'], implode(' · ', $details));
+            // Written directly: the two-column component trims the indentation.
+            $this->line('  '.str_repeat('  ', $depth).$page['id'].'  <fg=gray>'.implode(' · ', $details).'</>');
             $this->render($page['children'], $depth + 1);
         }
     }

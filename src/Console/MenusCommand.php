@@ -82,7 +82,8 @@ final class MenusCommand extends Command
                 $entry['icon'] === null ? null : 'icon '.$entry['icon'],
                 $entry['visibility'] ? 'visible when' : null,
             ]);
-            $this->components->twoColumnDetail(str_repeat('  ', $depth).$entry['id'], implode(' · ', $details));
+            // Written directly: the two-column component trims the indentation.
+            $this->line('  '.str_repeat('  ', $depth).$entry['id'].'  <fg=gray>'.implode(' · ', $details).'</>');
             $this->render($entry['children'], $depth + 1);
         }
     }
