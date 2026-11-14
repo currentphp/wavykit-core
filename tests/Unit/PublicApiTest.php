@@ -90,6 +90,12 @@ const SUPPORTED_API = [
     'WavyKit\Pages\Pages::current()',
     'WavyKit\Pages\Pages::label()',
     'WavyKit\Pages\Pages::url()',
+    'WavyKit\Testing\InteractsWithWavyKit',
+    'WavyKit\Testing\InteractsWithWavyKit::assertBreadcrumbs()',
+    'WavyKit\Testing\InteractsWithWavyKit::assertCurrentPage()',
+    'WavyKit\Testing\InteractsWithWavyKit::assertMenuActive()',
+    'WavyKit\Testing\InteractsWithWavyKit::assertMenuHas()',
+    'WavyKit\Testing\InteractsWithWavyKit::assertMenuMissing()',
 ];
 
 /** @return list<string> */

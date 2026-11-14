@@ -393,6 +393,45 @@ Pages are nested under `children`, with `label` null and `dynamicLabel` true
 for callback labels; menus have `name`, `kind` (`derived` or `defined`),
 `roots`, `except`, and nested `entries`.
 
+## Testing
+
+Add `WavyKit\Testing\InteractsWithWavyKit` to your application's `TestCase`,
+make a request, then assert what WavyKit resolved for it:
+
+```php
+use WavyKit\Testing\InteractsWithWavyKit;
+
+abstract class TestCase extends BaseTestCase
+{
+    use InteractsWithWavyKit;
+}
+```
+
+```php
+$this->actingAs($admin)->get('/projects/42')->assertOk();
+
+$this->assertCurrentPage('projects.show')
+    ->assertBreadcrumbs(['Projects', 'Apollo'])
+    ->assertMenuHas('primary', 'admin')
+    ->assertMenuActive('primary', 'projects');
+
+$this->actingAs($member)->get('/projects/42');
+$this->assertMenuMissing('primary', 'admin');
+```
+
+- `assertCurrentPage(?string $id)` checks the active page; pass null to assert
+  that no page is active.
+- `assertBreadcrumbs(array $labels)` checks the breadcrumb labels, root first.
+- `assertMenuHas()` and `assertMenuMissing()` check whether a menu shows a page
+  at any depth, which is how `visibleWhen()` rules are tested.
+  `assertMenuActive()` checks that the page is shown and active.
+
+The assertions read the last request through `WavyKit\Facades\Current`, so
+callbacks see that request's bound models and user. Failure messages include
+the actual labels or the menu as it was resolved. In Pest, add the trait with
+`pest()->use(InteractsWithWavyKit::class)` or `uses(...)`. PHPUnit is required,
+as in any Laravel test suite; the trait is never loaded outside tests.
+
 ## Development
 
 The core is developed from the WavyKit monorepo root, which installs the

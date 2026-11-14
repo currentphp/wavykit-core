@@ -13,6 +13,9 @@
   list and validate registered pages and menus without running callbacks, with
   `--json` output for the listings. `wavykit:check` exits 1 on any problem, for
   CI. The core now requires `illuminate/console`.
+- `WavyKit\Testing\InteractsWithWavyKit`, a test trait with
+  `assertCurrentPage()`, `assertBreadcrumbs()`, `assertMenuHas()`,
+  `assertMenuMissing()`, and `assertMenuActive()` for the last test request.
 
 ### Breaking
 
