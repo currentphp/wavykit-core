@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No changes yet.
+
+## 0.2.0 - 2026-11-16
+
 ### Added
 
 - `WavyKit\Facades\Current`, a read-only facade for the current request:

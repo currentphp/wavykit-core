@@ -17,7 +17,7 @@ returns plain data for Blade, Inertia, or any other frontend.
 
 Package: `wavykit/core`. Namespaces: `WavyKit\Pages\` (pages),
 `WavyKit\Navigation\` (breadcrumbs and menus), and `WavyKit\Context`.
-Maintained by WavyKit. Version 0.1.0 is the first release. While WavyKit is on
+Maintained by WavyKit. The current release is 0.2.0. While WavyKit is on
 0.x, minor releases may change the public API; see [Versioning](#versioning).
 
 ## Requirements
