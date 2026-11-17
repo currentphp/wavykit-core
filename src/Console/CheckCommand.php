@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace WavyKit\Console;
 
-use Illuminate\Console\Command;
-
 /**
  * Validates every page and menu definition, for CI.
  *
  * @internal Run as `php artisan wavykit:check`; the command name, output, and exit code are the supported interface.
  */
-final class CheckCommand extends Command
+final class CheckCommand extends InspectionCommand
 {
     /** @var string */
     protected $signature = 'wavykit:check';
@@ -21,11 +19,7 @@ final class CheckCommand extends Command
 
     public function handle(Inspector $inspector): int
     {
-        $problems = $inspector->problems();
-        foreach ($problems as $problem) {
-            $this->components->error($problem);
-        }
-        if ($problems !== []) {
+        if ($this->reportProblems($inspector)) {
             return self::FAILURE;
         }
 

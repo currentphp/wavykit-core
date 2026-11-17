@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace WavyKit\Console;
 
-use Illuminate\Console\Command;
-
 /**
  * Lists registered pages as a tree, root pages first.
  *
@@ -13,7 +11,7 @@ use Illuminate\Console\Command;
  *
  * @phpstan-import-type PageNode from Inspector
  */
-final class PagesCommand extends Command
+final class PagesCommand extends InspectionCommand
 {
     /** @var string */
     protected $signature = 'wavykit:pages {--json : Print the page tree as JSON}';
@@ -23,25 +21,12 @@ final class PagesCommand extends Command
 
     public function handle(Inspector $inspector): int
     {
-        $problems = $inspector->problems();
-        if ($problems !== []) {
-            foreach ($problems as $problem) {
-                $this->components->error($problem);
-            }
-
+        if ($this->reportProblems($inspector)) {
             return self::FAILURE;
         }
 
         $pages = $inspector->pages();
-        if ($this->option('json') === true) {
-            $this->line(json_encode($pages, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
-
-            return self::SUCCESS;
-        }
-
-        if ($pages === []) {
-            $this->components->info('No pages are registered.');
-
+        if ($this->printedAsJsonOrEmpty($pages, 'No pages are registered.')) {
             return self::SUCCESS;
         }
 

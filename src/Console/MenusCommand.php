@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace WavyKit\Console;
 
-use Illuminate\Console\Command;
-
 /**
  * Lists registered menus, or one menu, as trees of entries.
  *
@@ -13,7 +11,7 @@ use Illuminate\Console\Command;
  *
  * @phpstan-import-type MenuNode from Inspector
  */
-final class MenusCommand extends Command
+final class MenusCommand extends InspectionCommand
 {
     /** @var string */
     protected $signature = 'wavykit:menus
@@ -25,12 +23,7 @@ final class MenusCommand extends Command
 
     public function handle(Inspector $inspector): int
     {
-        $problems = $inspector->problems();
-        if ($problems !== []) {
-            foreach ($problems as $problem) {
-                $this->components->error($problem);
-            }
-
+        if ($this->reportProblems($inspector)) {
             return self::FAILURE;
         }
 
@@ -46,15 +39,7 @@ final class MenusCommand extends Command
         }
 
         $menus = array_map($inspector->menu(...), $names);
-        if ($this->option('json') === true) {
-            $this->line(json_encode($menus, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
-
-            return self::SUCCESS;
-        }
-
-        if ($menus === []) {
-            $this->components->info('No menus are registered.');
-
+        if ($this->printedAsJsonOrEmpty($menus, 'No menus are registered.')) {
             return self::SUCCESS;
         }
 
