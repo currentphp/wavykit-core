@@ -25,7 +25,7 @@ final class SubjectRegistry
      *
      * Complete registration before any read finalizes the registry.
      *
-     * @throws InvalidDefinition If finalized, or a kind name is empty or already used.
+     * @throws InvalidDefinition If finalized, or a kind's name is empty or already used, or its class or label is missing.
      */
     public function register(Subject ...$subjects): void
     {
@@ -50,7 +50,7 @@ final class SubjectRegistry
      * harmless. Laravel-specific checks (routable classes, route parameters) run
      * in the Subjects reader.
      *
-     * @throws InvalidDefinition For a kind without a class or label, overlapping classes,
+     * @throws InvalidDefinition For overlapping classes,
      *                           unknown or non-presenting canonical pages, or pages presenting unknown kinds.
      */
     public function finalize(): void
@@ -66,14 +66,8 @@ final class SubjectRegistry
 
         $checked = [];
         foreach ($this->definitions as $kind) {
-            if ($kind->class === null || (! class_exists($kind->class) && ! interface_exists($kind->class))) {
-                throw new InvalidDefinition("Subject '{$kind->name}' must name an existing class with for().");
-            }
-            if ($kind->label === null) {
-                throw new InvalidDefinition("Subject '{$kind->name}' must have a label().");
-            }
             foreach ($checked as $other) {
-                if (is_a($kind->class, (string) $other->class, true) || is_a((string) $other->class, $kind->class, true)) {
+                if (is_a($kind->class, $other->class, true) || is_a($other->class, $kind->class, true)) {
                     throw new InvalidDefinition("Subjects '{$other->name}' and '{$kind->name}' have overlapping classes.");
                 }
             }
@@ -133,7 +127,7 @@ final class SubjectRegistry
     public function forObject(object $object): ?SubjectDefinition
     {
         foreach ($this->all() as $kind) {
-            if ($kind->class !== null && $object instanceof $kind->class) {
+            if ($object instanceof $kind->class) {
                 return $kind;
             }
         }

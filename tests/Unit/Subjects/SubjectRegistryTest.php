@@ -62,3 +62,10 @@ test('kinds cannot be registered after the registry is read', function () {
     expect(fn () => $subjects->register(projectKind()))
         ->toThrow(InvalidDefinition::class, 'Subjects must be registered before the subject registry is resolved.');
 });
+
+test('a kind without a class or label is rejected when registered, not later', function (Subject $subject, string $message) {
+    expect(fn () => subjectsWith()->register($subject))->toThrow(InvalidDefinition::class, $message);
+})->with([
+    'no class' => [Subject::make('project')->label(fn (): string => 'P'), "Subject 'project' must name an existing class with for()."],
+    'no label' => [Subject::make('project')->for(Project::class), "Subject 'project' must have a label()."],
+]);

@@ -12,18 +12,20 @@ use Throwable;
 use WavyKit\Context;
 use WavyKit\Exceptions\InvalidDefinition;
 use WavyKit\Exceptions\ResolutionFailed;
+use WavyKit\Subjects\SubjectDefinition;
 use WavyKit\Subjects\SubjectRegistry;
 use WavyKit\Support\Label;
+use WavyKit\Support\RouteParameters;
 
 /** Resolves registered pages for the current Laravel request; does not create routes or enforce access. */
-final readonly class Pages
+final class Pages
 {
     /** @internal Resolved from the container, scoped to the request or job. */
     public function __construct(
-        private PageRegistry $registry,
-        private Router $router,
-        private UrlGenerator $urls,
-        private SubjectRegistry $subjects,
+        private readonly PageRegistry $registry,
+        private readonly Router $router,
+        private readonly UrlGenerator $urls,
+        private readonly SubjectRegistry $subjects,
     ) {}
 
     /**
@@ -95,13 +97,36 @@ final readonly class Pages
             return Label::resolve($page->label, $context, "page '{$page->id}'");
         }
 
-        $kind = $this->subjects->kind($page->presents);
-        $object = $context->parameters()[$page->presentsParameter ?? $page->presents] ?? null;
-        if (! is_object($object)) {
-            throw new ResolutionFailed("Page '{$page->id}' presents subject '{$kind->name}', but route parameter '{$page->presentsParameter}' is not a bound object.");
-        }
+        return $this->subjectLabel($this->subjects->kind($page->presents), $this->presentedObject($page, $context));
+    }
 
-        return Label::resolve($kind->label ?? $kind->name, $object, "subject '{$kind->name}'");
+    /**
+     * Read the bound object a presenting page shows, from the context's route parameters.
+     *
+     * @internal Shared by label() and the Subjects reader.
+     *
+     * @throws ResolutionFailed If the page presents nothing, or the parameter is not a bound object.
+     */
+    public function presentedObject(PageDefinition $page, Context $context): object
+    {
+        $parameter = $page->presentsParameter ?? throw new ResolutionFailed("Page '{$page->id}' presents no subject.");
+        $object = $context->parameters()[$parameter] ?? null;
+
+        return is_object($object)
+            ? $object
+            : throw new ResolutionFailed("Page '{$page->id}' presents subject '{$page->presents}', but route parameter '{$parameter}' is not a bound object.");
+    }
+
+    /**
+     * Resolve a subject's label from its object.
+     *
+     * @internal Shared by label() and the Subjects reader.
+     *
+     * @throws ResolutionFailed If the callback throws or does not return a string.
+     */
+    public function subjectLabel(SubjectDefinition $kind, object $object): string
+    {
+        return Label::resolve($kind->label, $object, "subject '{$kind->name}'");
     }
 
     /**
@@ -118,26 +143,11 @@ final readonly class Pages
         if ($page->routeName === null) {
             return null;
         }
-        $activeParameters = $context->parameters();
-        if ($page->routeParameters !== null) {
-            try {
-                $mapped = ($page->routeParameters)($context);
-            } catch (Throwable $exception) {
-                throw new ResolutionFailed("Could not resolve route parameters for page '{$page->id}' and route '{$page->routeName}': {$exception->getMessage()}", 0, $exception);
-            }
-            if (! is_array($mapped)) {
-                throw new ResolutionFailed("Route-parameter callback for page '{$page->id}' must return an array keyed by route parameter name.");
-            }
-            $activeParameters = [];
-            foreach ($mapped as $name => $value) {
-                if (! is_string($name)) {
-                    throw new ResolutionFailed("Route-parameter callback for page '{$page->id}' must return an array keyed by route parameter name.");
-                }
-                $activeParameters[$name] = $value;
-            }
-        }
+        $parameters = $page->routeParameters === null
+            ? $context->parameters()
+            : RouteParameters::resolve($page->routeParameters, $context, "page '{$page->id}'");
 
-        return $this->urlWith($page, $activeParameters);
+        return $this->urlWith($page, $parameters);
     }
 
     /**

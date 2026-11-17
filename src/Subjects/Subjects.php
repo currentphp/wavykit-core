@@ -6,26 +6,25 @@ namespace WavyKit\Subjects;
 
 use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Routing\Router;
-use Throwable;
 use WavyKit\Exceptions\InvalidDefinition;
 use WavyKit\Exceptions\ResolutionFailed;
 use WavyKit\Pages\PageRegistry;
 use WavyKit\Pages\Pages;
-use WavyKit\Support\Label;
+use WavyKit\Support\RouteParameters;
 
 /**
  * Resolves subjects: any object's subject, and the current request's.
  *
  * Reads objects the application has bound; never loads or queries them.
  */
-final readonly class Subjects
+final class Subjects
 {
     /** @internal Resolved from the container, scoped to the request or job. */
     public function __construct(
-        private SubjectRegistry $registry,
-        private PageRegistry $pages,
-        private Pages $reader,
-        private Router $router,
+        private readonly SubjectRegistry $registry,
+        private readonly PageRegistry $pages,
+        private readonly Pages $reader,
+        private readonly Router $router,
     ) {}
 
     /**
@@ -62,13 +61,8 @@ final readonly class Subjects
                 continue;
             }
             $this->validate();
-            $parameter = $page->presentsParameter ?? $page->presents;
-            $object = $context->parameters()[$parameter] ?? null;
-            if (! is_object($object)) {
-                throw new ResolutionFailed("Page '{$page->id}' presents subject '{$page->presents}', but route parameter '{$parameter}' is not a bound object.");
-            }
 
-            return $this->item($this->registry->kind($page->presents), $object);
+            return $this->item($this->registry->kind($page->presents), $this->reader->presentedObject($page, $context));
         }
 
         return null;
@@ -88,7 +82,7 @@ final readonly class Subjects
     {
         $problems = [];
         foreach ($this->registry->all() as $kind) {
-            if ($kind->class !== null && ! is_a($kind->class, UrlRoutable::class, true)) {
+            if (! is_a($kind->class, UrlRoutable::class, true)) {
                 $problems[] = "Subject '{$kind->name}' class {$kind->class} must be routable (implement UrlRoutable) to have an identity.";
             }
         }
@@ -96,7 +90,7 @@ final readonly class Subjects
             if ($page->presents === null) {
                 continue;
             }
-            $parameter = $page->presentsParameter ?? $page->presents;
+            $parameter = (string) $page->presentsParameter;
             $route = $page->routeName === null ? null : $this->router->getRoutes()->getByName($page->routeName);
             if ($page->routeName !== null && $route === null) {
                 continue; // Reported as an unknown route by Pages.
@@ -132,7 +126,7 @@ final readonly class Subjects
         return new SubjectItem(
             $kind->name,
             (string) $key,
-            Label::resolve($kind->label ?? $kind->name, $object, "subject '{$kind->name}'"),
+            $this->reader->subjectLabel($kind, $object),
             $this->url($kind, $object),
         );
     }
@@ -143,27 +137,10 @@ final readonly class Subjects
         if ($kind->pageId === null) {
             return null;
         }
-        $page = $this->pages->page($kind->pageId);
-        if ($kind->routeParameters === null) {
-            return $this->reader->urlWith($page, [$kind->name => $object]);
-        }
+        $parameters = $kind->routeParameters === null
+            ? [$kind->name => $object]
+            : RouteParameters::resolve($kind->routeParameters, $object, "subject '{$kind->name}'");
 
-        try {
-            $mapped = ($kind->routeParameters)($object);
-        } catch (Throwable $exception) {
-            throw new ResolutionFailed("Could not resolve route parameters for subject '{$kind->name}': {$exception->getMessage()}", 0, $exception);
-        }
-        if (! is_array($mapped)) {
-            throw new ResolutionFailed("Route-parameter callback for subject '{$kind->name}' must return an array keyed by route parameter name.");
-        }
-        $parameters = [];
-        foreach ($mapped as $name => $value) {
-            if (! is_string($name)) {
-                throw new ResolutionFailed("Route-parameter callback for subject '{$kind->name}' must return an array keyed by route parameter name.");
-            }
-            $parameters[$name] = $value;
-        }
-
-        return $this->reader->urlWith($page, $parameters);
+        return $this->reader->urlWith($this->pages->page($kind->pageId), $parameters);
     }
 }

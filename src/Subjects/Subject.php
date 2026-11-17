@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace WavyKit\Subjects;
 
 use Closure;
+use WavyKit\Exceptions\InvalidDefinition;
 
 /**
  * A declaration builder for a kind of subject, such as a project or a task.
@@ -73,9 +74,20 @@ final class Subject
         return $this;
     }
 
-    /** @internal Snapshot taken by SubjectRegistry. */
+    /**
+     * @internal Snapshot taken by SubjectRegistry.
+     *
+     * @throws InvalidDefinition If the class or label is missing.
+     */
     public function toDefinition(): SubjectDefinition
     {
+        if ($this->class === null || (! class_exists($this->class) && ! interface_exists($this->class))) {
+            throw new InvalidDefinition("Subject '{$this->name}' must name an existing class with for().");
+        }
+        if ($this->label === null) {
+            throw new InvalidDefinition("Subject '{$this->name}' must have a label().");
+        }
+
         return new SubjectDefinition($this->name, $this->class, $this->label, $this->pageId, $this->routeParameters);
     }
 }

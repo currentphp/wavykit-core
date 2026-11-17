@@ -12,12 +12,12 @@ final readonly class SubjectDefinition
     /**
      * @internal Created by SubjectRegistry from a Subject builder.
      *
-     * @param  class-string|null  $class  Null only before validation fails.
+     * @param  class-string  $class
      */
     public function __construct(
         public string $name,
-        public ?string $class,
-        public ?Closure $label,
+        public string $class,
+        public Closure $label,
         public ?string $pageId,
         public ?Closure $routeParameters = null,
     ) {}
