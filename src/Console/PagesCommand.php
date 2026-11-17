@@ -61,6 +61,7 @@ final class PagesCommand extends Command
                 $page['label'] ?? '(dynamic)',
                 $page['route'] === null ? 'no route' : 'route '.$page['route'],
                 $page['icon'] === null ? null : 'icon '.$page['icon'],
+                $page['presents'] === null ? null : 'presents '.$page['presents'],
             ]);
             // Written directly: the two-column component trims the indentation.
             $this->line('  '.str_repeat('  ', $depth).$page['id'].'  <fg=gray>'.implode(' · ', $details).'</>');

@@ -13,6 +13,7 @@ use WavyKit\Navigation\MenuItemKind;
 use WavyKit\Navigation\MenuRegistry;
 use WavyKit\Pages\Page;
 use WavyKit\Pages\PageRegistry;
+use WavyKit\Subjects\Subject;
 
 test('both exception types are catchable as WavyKit and logic exceptions', function (string $class) {
     $exception = new $class('failure');
@@ -34,7 +35,7 @@ test('builders expose no mutable public state', function (string $class) {
     );
 
     expect($mutable)->toBe([]);
-})->with([Page::class, MenuEntry::class]);
+})->with([Page::class, MenuEntry::class, Subject::class]);
 
 test('outputs serialize to the documented shapes', function () {
     $crumb = new Breadcrumb('projects', 'Projects', 'https://example.test/projects', true, 'folder');

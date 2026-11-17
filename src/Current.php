@@ -14,6 +14,8 @@ use WavyKit\Navigation\MenuItem;
 use WavyKit\Navigation\Navigation;
 use WavyKit\Pages\PageDefinition;
 use WavyKit\Pages\Pages;
+use WavyKit\Subjects\SubjectItem;
+use WavyKit\Subjects\Subjects;
 
 /**
  * Reads the experience of the current request: page, breadcrumbs, menus, and context.
@@ -97,6 +99,18 @@ final readonly class Current
     public function context(): Context
     {
         return $this->pages()->context();
+    }
+
+    /**
+     * The subject the request is about: the active page's, or else the nearest
+     * ancestor page's that presents one; null when none does.
+     *
+     * @throws InvalidDefinition If definitions or route references are invalid.
+     * @throws ResolutionFailed If the presented subject is not bound or cannot be resolved.
+     */
+    public function subject(): ?SubjectItem
+    {
+        return $this->container->make(Subjects::class)->current();
     }
 
     /**

@@ -2,7 +2,26 @@
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Subjects (`WavyKit\Subjects\`): declare kinds once with
+  `Subject::make()->for()->label()->page()` in `SubjectRegistry`; pages
+  present them with `Page::presents()` and take the subject's label unless
+  they have their own. `Current::subject()` returns the active page's subject,
+  or the nearest ancestor's; `Subjects::of($object)` resolves any object's
+  subject and canonical URL, also outside requests. Output is `SubjectItem`
+  (`{ kind, id, label, url }`, identity `kind:id`). Registration is validated:
+  overlapping classes, canonical pages that do not present their kind, unknown
+  kinds, unroutable classes, and routes missing the presented parameter.
+- `wavykit:subjects` (with `--json`), subject checks in `wavykit:check`, a
+  `presents` detail in `wavykit:pages`, and `assertCurrentSubject()` in
+  `InteractsWithWavyKit`.
+
+### Changed
+
+- `PageDefinition` has `presents`, `presentsParameter`, and `labelled`.
+  Internal: `Pages` resolves URLs through one builder shared with subjects, and
+  label callbacks share one resolver for pages, menus, and subjects.
 
 ## 0.2.0 - 2026-11-16
 

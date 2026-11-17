@@ -24,6 +24,12 @@ final class Page
 
     private ?string $icon = null;
 
+    private bool $labelled = false;
+
+    private ?string $presents = null;
+
+    private ?string $presentsParameter = null;
+
     /** @var list<Page> */
     private array $children = [];
 
@@ -53,6 +59,23 @@ final class Page
     public function label(string|callable $label): self
     {
         $this->label = is_string($label) ? $label : Closure::fromCallable($label);
+        $this->labelled = true;
+
+        return $this;
+    }
+
+    /**
+     * Present a subject kind, read from the bound route parameter of the same
+     * name, or of the given name.
+     *
+     * Without its own label, the page takes the subject's label; an explicit
+     * label() still wins. The page also supplies the current subject for itself
+     * and for pages below it. The kind must be registered in SubjectRegistry.
+     */
+    public function presents(string $kind, ?string $parameter = null): self
+    {
+        $this->presents = $kind;
+        $this->presentsParameter = $parameter ?? $kind;
 
         return $this;
     }
@@ -154,6 +177,17 @@ final class Page
     /** @internal Snapshot taken by PageRegistry, with the resolved parent. */
     public function toDefinition(?string $parentId): PageDefinition
     {
-        return new PageDefinition($this->id, $this->label, $this->routeName, $parentId, $this->order, $this->routeParameters, $this->icon);
+        return new PageDefinition(
+            $this->id,
+            $this->label,
+            $this->routeName,
+            $parentId,
+            $this->order,
+            $this->routeParameters,
+            $this->icon,
+            $this->presents,
+            $this->presentsParameter,
+            $this->labelled,
+        );
     }
 }

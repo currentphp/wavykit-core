@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static list<\WavyKit\Navigation\MenuItem> menu(string $name)
  * @method static \WavyKit\Context context()
  * @method static \Illuminate\Contracts\Auth\Authenticatable|null user()
+ * @method static \WavyKit\Subjects\SubjectItem|null subject()
  *
  * @see \WavyKit\Current
  */

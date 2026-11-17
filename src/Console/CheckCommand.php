@@ -17,7 +17,7 @@ final class CheckCommand extends Command
     protected $signature = 'wavykit:check';
 
     /** @var string */
-    protected $description = 'Check WavyKit page and menu definitions; exits 1 on any problem';
+    protected $description = 'Check WavyKit page, menu, and subject definitions; exits 1 on any problem';
 
     public function handle(Inspector $inspector): int
     {
@@ -31,12 +31,15 @@ final class CheckCommand extends Command
 
         $pages = $inspector->pageCount();
         $menus = count($inspector->menuNames());
+        $subjects = count($inspector->subjects());
         $this->components->info(sprintf(
-            'WavyKit definitions are valid: %d %s, %d %s.',
+            'WavyKit definitions are valid: %d %s, %d %s, %d %s.',
             $pages,
             $pages === 1 ? 'page' : 'pages',
             $menus,
             $menus === 1 ? 'menu' : 'menus',
+            $subjects,
+            $subjects === 1 ? 'subject' : 'subjects',
         ));
 
         return self::SUCCESS;

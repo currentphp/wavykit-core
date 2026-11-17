@@ -125,7 +125,7 @@ test('wavykit:check passes valid definitions', function () {
     registerInspectionFixture();
 
     $this->artisan('wavykit:check')
-        ->expectsOutputToContain('WavyKit definitions are valid: 4 pages, 2 menus.')
+        ->expectsOutputToContain('WavyKit definitions are valid: 4 pages, 2 menus, 0 subjects.')
         ->assertExitCode(0);
 });
 

@@ -49,6 +49,23 @@ trait InteractsWithWavyKit
         return $this;
     }
 
+    /**
+     * Assert the current subject's kind, and its ID when given; a null kind
+     * asserts that the request has no subject.
+     */
+    public function assertCurrentSubject(?string $kind, ?string $id = null): static
+    {
+        $subject = Current::subject();
+        $actual = $subject?->key() ?? 'none';
+        $expected = $kind === null ? 'none' : ($id === null ? "{$kind}:*" : "{$kind}:{$id}");
+        $matches = $kind === null
+            ? $subject === null
+            : $subject !== null && $subject->kind === $kind && ($id === null || $subject->id === $id);
+        Assert::assertTrue($matches, "Expected the current subject to be {$expected}, but it was {$actual}.");
+
+        return $this;
+    }
+
     /** Assert that a menu shows a page at any depth for this request. */
     public function assertMenuHas(string $menu, string $pageId): static
     {

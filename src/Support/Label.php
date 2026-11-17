@@ -6,25 +6,27 @@ namespace WavyKit\Support;
 
 use Closure;
 use Throwable;
-use WavyKit\Context;
 use WavyKit\Exceptions\ResolutionFailed;
 
 /** @internal Resolves string-or-callback labels; shared by every reader. */
 final class Label
 {
     /**
-     * @param  string|Closure(Context): mixed  $value
-     * @param  string  $owner  Names the page or menu entry in error messages.
+     * @template TArgument
+     *
+     * @param  string|Closure(TArgument): mixed  $value
+     * @param  TArgument  $argument  Passed to a callback: the request Context for pages and menus, the object for subjects.
+     * @param  string  $owner  Names the page, menu entry, or subject in error messages.
      *
      * @throws ResolutionFailed If the callback throws or does not return a string.
      */
-    public static function resolve(string|Closure $value, Context $context, string $owner): string
+    public static function resolve(string|Closure $value, mixed $argument, string $owner): string
     {
         if (is_string($value)) {
             return $value;
         }
         try {
-            $label = $value($context);
+            $label = $value($argument);
         } catch (Throwable $exception) {
             throw new ResolutionFailed("Could not resolve label for {$owner}: {$exception->getMessage()}", 0, $exception);
         }

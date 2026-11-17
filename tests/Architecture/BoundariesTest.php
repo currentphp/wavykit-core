@@ -7,6 +7,7 @@ use WavyKit\CoreServiceProvider;
 use WavyKit\Current;
 use WavyKit\Navigation\Navigation;
 use WavyKit\Pages\Pages;
+use WavyKit\Subjects\Subjects;
 
 // Laravel at the edges: builders, definitions, registries, and outputs make no
 // Laravel calls; readers, the request context, providers, facades, and console
@@ -22,6 +23,7 @@ arch('only the edges use Laravel')
         'WavyKit\Console',
         Pages::class,
         Navigation::class,
+        Subjects::class,
         'WavyKit\Tests',
     ]);
 

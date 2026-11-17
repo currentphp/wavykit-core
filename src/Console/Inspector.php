@@ -10,6 +10,9 @@ use WavyKit\Navigation\MenuRegistry;
 use WavyKit\Pages\PageDefinition;
 use WavyKit\Pages\PageRegistry;
 use WavyKit\Pages\Pages;
+use WavyKit\Subjects\SubjectDefinition;
+use WavyKit\Subjects\SubjectRegistry;
+use WavyKit\Subjects\Subjects;
 
 /**
  * Describes registered pages and menus as plain data, without a request.
@@ -18,7 +21,8 @@ use WavyKit\Pages\Pages;
  *
  * @internal Shared by the wavykit:pages, wavykit:menus, and wavykit:check commands.
  *
- * @phpstan-type PageNode array{id: string, label: ?string, dynamicLabel: bool, route: ?string, routeParameters: bool, icon: ?string, children: list<mixed>}
+ * @phpstan-type PageNode array{id: string, label: ?string, dynamicLabel: bool, route: ?string, routeParameters: bool, icon: ?string, presents: ?string, children: list<mixed>}
+ * @phpstan-type SubjectDescription array{name: string, class: ?string, page: ?string, routeParameters: bool, presentedBy: list<string>}
  * @phpstan-type MenuNode array{kind: 'page'|'group', id: string, label: ?string, dynamicLabel: bool, icon: ?string, visibility: bool, children: list<mixed>}
  * @phpstan-type MenuDescription array{name: string, kind: 'derived'|'defined', roots: list<string>, except: list<string>, entries: list<MenuNode>}
  */
@@ -28,6 +32,8 @@ final readonly class Inspector
         private PageRegistry $registry,
         private MenuRegistry $menus,
         private Pages $pages,
+        private SubjectRegistry $subjectRegistry,
+        private Subjects $subjects,
     ) {}
 
     /**
@@ -52,8 +58,15 @@ final readonly class Inspector
         } catch (InvalidDefinition $exception) {
             $problems[] = $exception->getMessage();
         }
+        try {
+            $this->subjectRegistry->finalize();
+        } catch (InvalidDefinition $exception) {
+            $problems[] = $exception->getMessage();
 
-        return $problems;
+            return $problems;
+        }
+
+        return [...$problems, ...$this->subjects->problems()];
     }
 
     public function pageCount(): int
@@ -65,6 +78,18 @@ final readonly class Inspector
     public function pages(): array
     {
         return array_map($this->page(...), $this->registry->children(null));
+    }
+
+    /** @return list<SubjectDescription> */
+    public function subjects(): array
+    {
+        return array_map(fn (SubjectDefinition $kind): array => [
+            'name' => $kind->name,
+            'class' => $kind->class,
+            'page' => $kind->pageId,
+            'routeParameters' => $kind->routeParameters !== null,
+            'presentedBy' => array_map(fn (PageDefinition $page): string => $page->id, $this->subjectRegistry->presentingPages($kind->name)),
+        ], $this->subjectRegistry->all());
     }
 
     /** @return list<string> */
@@ -107,11 +132,13 @@ final readonly class Inspector
     {
         return [
             'id' => $page->id,
-            'label' => is_string($page->label) ? $page->label : null,
-            'dynamicLabel' => ! is_string($page->label),
+            // A page that presents a subject without its own label takes the subject's, per request.
+            'label' => is_string($page->label) && ($page->presents === null || $page->labelled) ? $page->label : null,
+            'dynamicLabel' => ! is_string($page->label) || ($page->presents !== null && ! $page->labelled),
             'route' => $page->routeName,
             'routeParameters' => $page->routeParameters !== null,
             'icon' => $page->icon,
+            'presents' => $page->presents,
             'children' => array_map($this->page(...), $this->registry->children($page->id)),
         ];
     }

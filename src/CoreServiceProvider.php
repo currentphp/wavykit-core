@@ -8,10 +8,13 @@ use Illuminate\Support\ServiceProvider;
 use WavyKit\Console\CheckCommand;
 use WavyKit\Console\MenusCommand;
 use WavyKit\Console\PagesCommand;
+use WavyKit\Console\SubjectsCommand;
 use WavyKit\Navigation\MenuRegistry;
 use WavyKit\Navigation\Navigation;
 use WavyKit\Pages\PageRegistry;
 use WavyKit\Pages\Pages;
+use WavyKit\Subjects\SubjectRegistry;
+use WavyKit\Subjects\Subjects;
 
 /** Shares declarations across requests while scoping resolvers to the application request/job lifecycle. */
 final class CoreServiceProvider extends ServiceProvider
@@ -21,8 +24,10 @@ final class CoreServiceProvider extends ServiceProvider
     {
         $this->app->singleton(PageRegistry::class);
         $this->app->singleton(MenuRegistry::class);
+        $this->app->singleton(SubjectRegistry::class);
         $this->app->scoped(Pages::class);
         $this->app->scoped(Navigation::class);
+        $this->app->scoped(Subjects::class);
         // Stateless, so the facade's cached instance never holds request state.
         $this->app->singleton(Current::class);
     }
@@ -31,7 +36,7 @@ final class CoreServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([PagesCommand::class, MenusCommand::class, CheckCommand::class]);
+            $this->commands([PagesCommand::class, MenusCommand::class, SubjectsCommand::class, CheckCommand::class]);
         }
     }
 }

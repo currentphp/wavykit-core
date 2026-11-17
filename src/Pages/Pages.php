@@ -12,6 +12,7 @@ use Throwable;
 use WavyKit\Context;
 use WavyKit\Exceptions\InvalidDefinition;
 use WavyKit\Exceptions\ResolutionFailed;
+use WavyKit\Subjects\SubjectRegistry;
 use WavyKit\Support\Label;
 
 /** Resolves registered pages for the current Laravel request; does not create routes or enforce access. */
@@ -22,6 +23,7 @@ final readonly class Pages
         private PageRegistry $registry,
         private Router $router,
         private UrlGenerator $urls,
+        private SubjectRegistry $subjects,
     ) {}
 
     /**
@@ -81,11 +83,25 @@ final readonly class Pages
     /**
      * Resolve a page's label, running its callback with the given context.
      *
-     * @throws ResolutionFailed If the callback throws or does not return a string.
+     * A page that presents a subject and has no label of its own takes the
+     * subject's label, from the context's bound route parameter.
+     *
+     * @throws InvalidDefinition If subject definitions are invalid.
+     * @throws ResolutionFailed If a callback fails or returns a non-string, or the presented subject is not bound.
      */
     public function label(PageDefinition $page, Context $context): string
     {
-        return Label::resolve($page->label, $context, "page '{$page->id}'");
+        if ($page->presents === null || $page->labelled) {
+            return Label::resolve($page->label, $context, "page '{$page->id}'");
+        }
+
+        $kind = $this->subjects->kind($page->presents);
+        $object = $context->parameters()[$page->presentsParameter ?? $page->presents] ?? null;
+        if (! is_object($object)) {
+            throw new ResolutionFailed("Page '{$page->id}' presents subject '{$kind->name}', but route parameter '{$page->presentsParameter}' is not a bound object.");
+        }
+
+        return Label::resolve($kind->label ?? $kind->name, $object, "subject '{$kind->name}'");
     }
 
     /**
@@ -102,8 +118,6 @@ final readonly class Pages
         if ($page->routeName === null) {
             return null;
         }
-        $route = $this->router->getRoutes()->getByName($page->routeName)
-            ?? throw new InvalidDefinition("Page '{$page->id}' references unknown route '{$page->routeName}'.");
         $activeParameters = $context->parameters();
         if ($page->routeParameters !== null) {
             try {
@@ -122,6 +136,27 @@ final readonly class Pages
                 $activeParameters[$name] = $value;
             }
         }
+
+        return $this->urlWith($page, $activeParameters);
+    }
+
+    /**
+     * Generate a page's URL from explicit parameters, forwarding only those its route declares.
+     *
+     * @internal Shared by url() and the Subjects reader.
+     *
+     * @param  array<string, mixed>  $activeParameters
+     *
+     * @throws InvalidDefinition If the page references an unknown route.
+     * @throws ResolutionFailed If URL generation fails.
+     */
+    public function urlWith(PageDefinition $page, array $activeParameters): ?string
+    {
+        if ($page->routeName === null) {
+            return null;
+        }
+        $route = $this->router->getRoutes()->getByName($page->routeName)
+            ?? throw new InvalidDefinition("Page '{$page->id}' references unknown route '{$page->routeName}'.");
         $parameters = [];
         foreach ($route->parameterNames() as $name) {
             if (! is_string($name)) {

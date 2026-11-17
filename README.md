@@ -1,7 +1,7 @@
 # WavyKit Core
 
-One description of your Laravel application's experience: its pages, and the
-breadcrumbs and menus that read from them.
+One description of your Laravel application's experience: its pages, the
+breadcrumbs and menus that read from them, and the subjects users look at.
 
 Each page is defined once, with a stable ID, a place in the hierarchy, a label
 that can come from the bound resource, and an optional association with an
@@ -16,7 +16,8 @@ authorization, and rendering stay with the application, and everything here
 returns plain data for Blade, Inertia, or any other frontend.
 
 Package: `wavykit/core`. Namespaces: `WavyKit\Pages\` (pages),
-`WavyKit\Navigation\` (breadcrumbs and menus), and `WavyKit\Context`.
+`WavyKit\Navigation\` (breadcrumbs and menus), `WavyKit\Subjects\`
+(subjects), and `WavyKit\Context`.
 Maintained by WavyKit. The current release is 0.2.0. While WavyKit is on
 0.x, minor releases may change the public API; see [Versioning](#versioning).
 
@@ -97,7 +98,8 @@ route, or null. It retains dynamic callbacks rather than executing them.
 more patterns, with `*` as a wildcard, like Laravel's `routeIs()`; it checks
 the active page only, not its ancestors. `context()` returns a
 `WavyKit\Context` with the active definition, bound route parameters, and
-current user, which `Current::user()` also returns.
+current user, which `Current::user()` also returns. `Current::subject()`
+returns the subject the request is about; see [Subjects](#subjects).
 
 `Current` only reads. To inject it instead, type-hint `WavyKit\Current`, the
 class behind the facade. It holds no request state, so it is safe in queue
@@ -331,6 +333,72 @@ For example, create `resources/views/partials/menu.blade.php`:
 Render it inside an appropriately labelled navigation element with
 `@include('partials.menu', ['items' => \WavyKit\Facades\Current::menu('primary')])`.
 
+## Subjects
+
+A subject is a resource users look at and act on, such as a project or a task.
+Describe each kind once, with its class, its label, and the page that shows
+it; pages that present a kind then take its label, and any object of that kind
+resolves to the same label and link anywhere.
+
+```php
+use WavyKit\Pages\Page;
+use WavyKit\Pages\PageRegistry;
+use WavyKit\Subjects\Subject;
+use WavyKit\Subjects\SubjectRegistry;
+
+public function boot(SubjectRegistry $subjects, PageRegistry $pages): void
+{
+    $subjects->register(
+        Subject::make('project')->for(Project::class)
+            ->label(fn (Project $project): string => $project->name)
+            ->page('projects.show'),
+        Subject::make('task')->for(Task::class)
+            ->label(fn (Task $task): string => $task->title)
+            ->page('tasks.show', fn (Task $task): array => ['project' => $task->project, 'task' => $task]),
+    );
+
+    $pages->register(
+        Page::make('projects')->route('projects.index')->label('Projects')->children(
+            Page::make('projects.show')->route('projects.show')->presents('project')->children(
+                Page::make('projects.edit')->route('projects.edit')->label('Edit'),
+                Page::make('tasks.show')->route('tasks.show')->presents('task'),
+            ),
+        ),
+    );
+}
+```
+
+- `presents('project')` reads the bound route parameter of the same name;
+  `presents('task', parameter: 'id')` names another. A page that presents a
+  subject and has no label of its own takes the subject's label, so
+  breadcrumbs read Projects › Apollo › Fix login; an explicit label, such as
+  "Edit", still wins.
+- `page()` names the kind's one canonical page, which must present it. By
+  default the route parameter named after the kind receives the object;
+  otherwise map the object to the route's parameters. A kind without a page
+  has no URL.
+- Subject classes must be routable (`UrlRoutable`, such as Eloquent models):
+  identity is the kind plus the route key, `project:42`. Two kinds cannot
+  share a class or a class hierarchy.
+
+Read subjects as `WavyKit\Subjects\SubjectItem` objects with `kind`, `id`,
+`label`, nullable `url`, and `key()`; they serialize to
+`{ kind, id, label, url }`:
+
+```php
+use WavyKit\Facades\Current;
+use WavyKit\Subjects\Subjects;
+
+Current::subject();               // what the request is about, or null
+app(Subjects::class)->of($task);  // any object's subject and canonical link
+```
+
+`Current::subject()` is the active page's subject, or else the nearest ancestor
+page's that presents one: on `projects.edit` it is the project. It is null
+outside a request or when no page in the trail presents a subject. `of()` works
+anywhere Laravel can generate URLs, including queue jobs and notifications.
+WavyKit never loads or queries subjects; it reads objects your routes bind.
+
 ## Errors
 
 Every exception implements `WavyKit\Exceptions\WavyKitException` and extends
@@ -368,12 +436,13 @@ requests. It also checks that building the cache does not evaluate page labels.
 
 ## Inspecting definitions
 
-Three Artisan commands describe and check what is registered, without a
+Four Artisan commands describe and check what is registered, without a
 request:
 
 ```sh
 php artisan wavykit:pages          # the page tree: ID, label, route, icon
 php artisan wavykit:menus          # every menu as a tree; or: wavykit:menus primary
+php artisan wavykit:subjects       # subject kinds: class, canonical page, presenting pages
 php artisan wavykit:check          # validate everything; exits 1 on any problem
 ```
 
@@ -388,7 +457,8 @@ at once; other definition errors stop at the first one, so fix it and run the
 check again. The listing commands run the same checks first and fail the same
 way.
 
-Add `--json` to `wavykit:pages` or `wavykit:menus` for machine-readable output.
+Add `--json` to `wavykit:pages`, `wavykit:menus`, or `wavykit:subjects` for
+machine-readable output.
 Pages are nested under `children`, with `label` null and `dynamicLabel` true
 for callback labels; menus have `name`, `kind` (`derived` or `defined`),
 `roots`, `except`, and nested `entries`.
@@ -425,6 +495,8 @@ $this->assertMenuMissing('primary', 'admin');
 - `assertMenuHas()` and `assertMenuMissing()` check whether a menu shows a page
   at any depth, which is how `visibleWhen()` rules are tested.
   `assertMenuActive()` checks that the page is shown and active.
+- `assertCurrentSubject(?string $kind, ?string $id = null)` checks the current
+  subject's kind, and its ID when given; pass null to assert there is none.
 
 The assertions read the last request through `WavyKit\Facades\Current`, so
 callbacks see that request's bound models and user. Failure messages include

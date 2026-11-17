@@ -24,5 +24,8 @@ final readonly class PageDefinition
         public int $order,
         public ?Closure $routeParameters = null,
         public ?string $icon = null,
+        public ?string $presents = null,
+        public ?string $presentsParameter = null,
+        public bool $labelled = true,
     ) {}
 }
