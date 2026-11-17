@@ -20,6 +20,9 @@ use WavyKit\Support\RouteParameters;
 /** Resolves registered pages for the current Laravel request; does not create routes or enforce access. */
 final class Pages
 {
+    /** Route references are checked once per request or job; registries are frozen by then. */
+    private bool $routesChecked = false;
+
     /** @internal Resolved from the container, scoped to the request or job. */
     public function __construct(
         private readonly PageRegistry $registry,
@@ -207,10 +210,14 @@ final class Pages
 
     private function validateRoutes(): void
     {
+        if ($this->routesChecked) {
+            return;
+        }
         $problems = $this->unknownRoutes();
         if ($problems !== []) {
             throw new InvalidDefinition($problems[0]);
         }
+        $this->routesChecked = true;
     }
 
     private function activeRoute(): ?Route

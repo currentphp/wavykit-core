@@ -19,6 +19,9 @@ use WavyKit\Support\RouteParameters;
  */
 final class Subjects
 {
+    /** Reader checks run once per request or job; registries are frozen by then. */
+    private bool $validated = false;
+
     /** @internal Resolved from the container, scoped to the request or job. */
     public function __construct(
         private readonly SubjectRegistry $registry,
@@ -106,10 +109,14 @@ final class Subjects
     /** @throws InvalidDefinition */
     private function validate(): void
     {
+        if ($this->validated) {
+            return;
+        }
         $problems = $this->problems();
         if ($problems !== []) {
             throw new InvalidDefinition($problems[0]);
         }
+        $this->validated = true;
     }
 
     /** @throws ResolutionFailed */
